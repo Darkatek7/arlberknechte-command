@@ -22,14 +22,6 @@ type Task = {
   assignee: string;
 };
 
-type Health = {
-  name: string;
-  uptime: string;
-  load: string;
-  memory: string;
-  disk: string;
-};
-
 export default function Home() {
   const [bots, setBots] = useState<Bot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,24 +51,6 @@ export default function Home() {
     { id: 4, title: 'Better Styling', status: 'in_progress', assignee: 'kevinopenclaw' },
     { id: 5, title: 'Deploy to Production', status: 'todo', assignee: 'unassigned' },
   ]);
-
-  const [health, setHealth] = useState<Health[]>([]);
-
-  useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const res = await fetch('/api/health/stats');
-        const data = await res.json();
-        setHealth(data.health);
-      } catch (error) {
-        console.error('Failed to fetch health:', error);
-      }
-    };
-
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white font-sans">
@@ -159,39 +133,6 @@ export default function Home() {
                       )}
                     </>
                   )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Health Stats */}
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1 h-8 bg-green-500 rounded-full"></div>
-            <h2 className="text-2xl font-bold text-white">System Health</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {health.map((h) => (
-              <div key={h.name} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-                <h3 className="text-lg font-bold text-amber-400 mb-4">{h.name}</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <p className="text-zinc-500 text-xs mb-1">Uptime</p>
-                    <p className="text-white font-mono">{h.uptime}</p>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <p className="text-zinc-500 text-xs mb-1">Load</p>
-                    <p className="text-green-400 font-mono">{h.load}</p>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <p className="text-zinc-500 text-xs mb-1">RAM</p>
-                    <p className="text-white font-mono">{h.memory}</p>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <p className="text-zinc-500 text-xs mb-1">Disk</p>
-                    <p className="text-white font-mono">{h.disk}</p>
-                  </div>
                 </div>
               </div>
             ))}

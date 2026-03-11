@@ -4,9 +4,9 @@ export async function GET() {
   const botEndpoints = [
     { name: 'kimi-claw', url: 'http://100.123.238.113:18789/health', role: 'MASTERCHIEF' },
     { name: 'Openclaw', url: 'http://100.74.199.52:18789/health', role: 'Knecht #1' },
-    { name: 'kevinopenclaw', url: 'http://100.67.232.78:3002/api/health/local', role: 'Knecht #2' },
+    { name: 'kevinopenclaw', url: 'http://100.67.232.78:18888/health', role: 'Knecht #2' },
     { name: 'G-Claw', url: 'http://100.115.60.107:18790/health', role: 'Rapper 🎤' },
-    { name: 'Nixstral', url: 'http://100.74.199.52:18790/health', role: 'Auditor' },
+    { name: 'Nixstral', url: 'http://100.74.199.52:18888/health', role: 'Auditor' },
   ];
 
   const bots = await Promise.all(
