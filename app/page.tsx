@@ -26,11 +26,51 @@ type Health = {
 };
 
 export default function Home() {
-  const [bots] = useState<Bot[]>([
-    { name: 'kimi-claw', status: 'online', model: 'kimi-coding/k2p5', ip: '100.123.238.113', role: 'MASTERCHIEF' },
-    { name: 'Openclaw', status: 'online', model: 'kimi-coding/k2p5', ip: '100.74.199.52', role: 'Knecht #1' },
-    { name: 'kevinopenclaw', status: 'online', model: 'MiniMax-M2.5', ip: '100.99.28.9', role: 'Knecht #2' },
-  ]);
+  const [bots, setBots] = useState<Bot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBots = async () => {
+      const botEndpoints = [
+        { name: 'kimi-claw', url: 'http://100.123.238.113:18789/health', role: 'MASTERCHIEF' },
+        { name: 'Openclaw', url: 'http://100.74.199.52:18789/health', role: 'Knecht #1' },
+        { name: 'kevinopenclaw', url: 'http://100.67.232.78:3002/api/health/local', role: 'Knecht #2' },
+        { name: 'G-Claw', url: 'http://100.115.60.107:18790/health', role: 'Rapper 🎤' },
+        { name: 'Nixstral', url: 'http://100.74.199.52:18790/health', role: 'Auditor' },
+      ];
+
+      const botStatuses: Bot[] = await Promise.all(
+        botEndpoints.map(async (bot) => {
+          try {
+            const res = await fetch(bot.url, { signal: AbortSignal.timeout(3000) });
+            const data = await res.json();
+            return {
+              name: data.name || bot.name,
+              status: data.status || 'online',
+              model: data.model || 'unknown',
+              ip: data.tailscale_ip || bot.url.split('/')[2].split(':')[0],
+              role: bot.role,
+            };
+          } catch {
+            return {
+              name: bot.name,
+              status: 'offline',
+              model: 'unknown',
+              ip: bot.url.split('/')[2].split(':')[0],
+              role: bot.role,
+            };
+          }
+        })
+      );
+
+      setBots(botStatuses);
+      setLoading(false);
+    };
+
+    fetchBots();
+    const interval = setInterval(fetchBots, 5000); // Refresh every 5s
+    return () => clearInterval(interval);
+  }, []);
 
   const [tasks] = useState<Task[]>([
     { id: 1, title: 'MVP Dashboard', status: 'done', assignee: 'kevinopenclaw' },
@@ -40,11 +80,49 @@ export default function Home() {
     { id: 5, title: 'Deploy to Production', status: 'todo', assignee: 'unassigned' },
   ]);
 
-  const [health] = useState<Health[]>([
-    { name: 'kimi-claw', uptime: '18:28', load: '0.17', memory: '1.1Gi / 7.7Gi', disk: '60%' },
-    { name: 'Openclaw', uptime: '335 days', load: '0.09', memory: '956Mi / 15Gi', disk: '4%' },
-    { name: 'kevinopenclaw', uptime: 'N/A', load: 'N/A', memory: 'N/A', disk: 'N/A' },
-  ]);
+  const [health, setHealth] = useState<Health[]>([]);
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      const healthEndpoints = [
+        { name: 'kimi-claw', url: 'http://100.123.238.113:18789/health' },
+        { name: 'Openclaw', url: 'http://100.74.199.52:18789/health' },
+        { name: 'kevinopenclaw', url: 'http://100.67.232.78:3002/api/health/local' },
+        { name: 'G-Claw', url: 'http://100.115.60.107:18790/health' },
+        { name: 'Nixstral', url: 'http://100.74.199.52:18790/health' },
+      ];
+
+      const healthData: Health[] = await Promise.all(
+        healthEndpoints.map(async (bot) => {
+          try {
+            const res = await fetch(bot.url, { signal: AbortSignal.timeout(3000) });
+            const data = await res.json();
+            return {
+              name: data.name || bot.name,
+              uptime: `${data.uptime_minutes || 0}m`,
+              load: data.cpu_count ? `${data.cpu_count} cores` : 'N/A',
+              memory: data.memory_free && data.memory_total ? `${data.memory_free} / ${data.memory_total}` : 'N/A',
+              disk: 'N/A',
+            };
+          } catch {
+            return {
+              name: bot.name,
+              uptime: 'offline',
+              load: 'N/A',
+              memory: 'N/A',
+              disk: 'N/A',
+            };
+          }
+        })
+      );
+
+      setHealth(healthData);
+    };
+
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white font-sans">
@@ -72,6 +150,7 @@ export default function Home() {
           <div className="flex items-center gap-3 mb-6">
             <div className="w-1 h-8 bg-amber-500 rounded-full"></div>
             <h2 className="text-2xl font-bold text-white">Bot Status</h2>
+            {loading && <span className="text-amber-400 text-sm animate-pulse">Loading...</span>}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {bots.map((bot) => (
