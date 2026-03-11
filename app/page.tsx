@@ -8,6 +8,11 @@ type Bot = {
   model: string;
   ip: string;
   role: string;
+  cpu_load?: string;
+  memory_used_percent?: string;
+  disk_used_percent?: string;
+  uptime_human?: string;
+  health_emoji?: string;
 };
 
 type Task = {
@@ -31,44 +36,19 @@ export default function Home() {
 
   useEffect(() => {
     const fetchBots = async () => {
-      const botEndpoints = [
-        { name: 'kimi-claw', url: 'http://100.123.238.113:18789/health', role: 'MASTERCHIEF' },
-        { name: 'Openclaw', url: 'http://100.74.199.52:18789/health', role: 'Knecht #1' },
-        { name: 'kevinopenclaw', url: 'http://100.67.232.78:3002/api/health/local', role: 'Knecht #2' },
-        { name: 'G-Claw', url: 'http://100.115.60.107:18790/health', role: 'Rapper 🎤' },
-        { name: 'Nixstral', url: 'http://100.74.199.52:18790/health', role: 'Auditor' },
-      ];
-
-      const botStatuses: Bot[] = await Promise.all(
-        botEndpoints.map(async (bot) => {
-          try {
-            const res = await fetch(bot.url, { signal: AbortSignal.timeout(3000) });
-            const data = await res.json();
-            return {
-              name: data.name || bot.name,
-              status: data.status || 'online',
-              model: data.model || 'unknown',
-              ip: data.tailscale_ip || bot.url.split('/')[2].split(':')[0],
-              role: bot.role,
-            };
-          } catch {
-            return {
-              name: bot.name,
-              status: 'offline',
-              model: 'unknown',
-              ip: bot.url.split('/')[2].split(':')[0],
-              role: bot.role,
-            };
-          }
-        })
-      );
-
-      setBots(botStatuses);
-      setLoading(false);
+      try {
+        const res = await fetch('/api/bots/health');
+        const data = await res.json();
+        setBots(data.bots);
+      } catch (error) {
+        console.error('Failed to fetch bots:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchBots();
-    const interval = setInterval(fetchBots, 5000); // Refresh every 5s
+    const interval = setInterval(fetchBots, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -84,39 +64,13 @@ export default function Home() {
 
   useEffect(() => {
     const fetchHealth = async () => {
-      const healthEndpoints = [
-        { name: 'kimi-claw', url: 'http://100.123.238.113:18789/health' },
-        { name: 'Openclaw', url: 'http://100.74.199.52:18789/health' },
-        { name: 'kevinopenclaw', url: 'http://100.67.232.78:3002/api/health/local' },
-        { name: 'G-Claw', url: 'http://100.115.60.107:18790/health' },
-        { name: 'Nixstral', url: 'http://100.74.199.52:18790/health' },
-      ];
-
-      const healthData: Health[] = await Promise.all(
-        healthEndpoints.map(async (bot) => {
-          try {
-            const res = await fetch(bot.url, { signal: AbortSignal.timeout(3000) });
-            const data = await res.json();
-            return {
-              name: data.name || bot.name,
-              uptime: `${data.uptime_minutes || 0}m`,
-              load: data.cpu_count ? `${data.cpu_count} cores` : 'N/A',
-              memory: data.memory_free && data.memory_total ? `${data.memory_free} / ${data.memory_total}` : 'N/A',
-              disk: 'N/A',
-            };
-          } catch {
-            return {
-              name: bot.name,
-              uptime: 'offline',
-              load: 'N/A',
-              memory: 'N/A',
-              disk: 'N/A',
-            };
-          }
-        })
-      );
-
-      setHealth(healthData);
+      try {
+        const res = await fetch('/api/health/stats');
+        const data = await res.json();
+        setHealth(data.health);
+      } catch (error) {
+        console.error('Failed to fetch health:', error);
+      }
     };
 
     fetchHealth();
@@ -173,10 +127,38 @@ export default function Home() {
                     <span className="text-zinc-500">Model</span>
                     <span className="text-zinc-300 font-mono text-xs">{bot.model}</span>
                   </div>
-                  <div className="flex justify-between py-2">
+                  <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-500">IP</span>
                     <span className="text-zinc-300 font-mono text-xs">{bot.ip}</span>
                   </div>
+                  {bot.status === 'online' && (
+                    <>
+                      {bot.cpu_load && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-zinc-500">CPU</span>
+                          <span className="text-green-400 font-mono text-xs">{bot.cpu_load}</span>
+                        </div>
+                      )}
+                      {bot.memory_used_percent && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-zinc-500">RAM</span>
+                          <span className="text-blue-400 font-mono text-xs">{bot.memory_used_percent}</span>
+                        </div>
+                      )}
+                      {bot.disk_used_percent && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-zinc-500">Disk</span>
+                          <span className="text-purple-400 font-mono text-xs">{bot.disk_used_percent}</span>
+                        </div>
+                      )}
+                      {bot.uptime_human && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-zinc-500">Uptime</span>
+                          <span className="text-amber-400 font-mono text-xs">{bot.uptime_human}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             ))}
